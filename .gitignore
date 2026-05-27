@@ -1,0 +1,43 @@
+# Build artifacts
+build/
+build-*/
+out/
+cmake-build-*/
+_deps/
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Compiled
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.cache/
+compile_commands.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sanitizer output
+*.tsan.log
+*.asan.log
+core.*
