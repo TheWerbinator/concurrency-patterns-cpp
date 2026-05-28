@@ -28,3 +28,5 @@ find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 
 # Modules added one at a time as they land.
+
+add_subdirectory(race-conditions)
