@@ -30,3 +30,5 @@ link_libraries(Threads::Threads)
 # Modules added one at a time as they land.
 
 add_subdirectory(race-conditions)
+add_subdirectory(producer-consumer)
+add_subdirectory(dining-philosophers)

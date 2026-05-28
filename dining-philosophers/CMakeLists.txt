@@ -1,0 +1,1 @@
+add_executable(dining_philosophers dining_philosophers.cpp)
