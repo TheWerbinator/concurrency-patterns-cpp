@@ -1,0 +1,3 @@
+add_executable(binary_semaphore binary_semaphore.cpp)
+add_executable(counting_semaphore counting_semaphore.cpp)
+add_executable(mutex_raii mutex_raii.cpp)
