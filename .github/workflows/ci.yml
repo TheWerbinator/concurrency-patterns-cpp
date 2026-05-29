@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build (Release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++-13
+
+      - name: Configure
+        env:
+          CXX: g++-13
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build (excluding benchmark — slow to fetch)
+        run: |
+          cmake --build build --target race fixed producer_consumer \
+            dining_philosophers reader_writer \
+            binary_semaphore counting_semaphore mutex_raii race_fork \
+            -j
+
+      - name: Run examples
+        run: |
+          ./build/race-conditions/fixed
+          ./build/producer-consumer/producer_consumer
+          ./build/dining-philosophers/dining_philosophers
+          ./build/reader-writer/reader_writer
+          ./build/semaphores/binary_semaphore
+          ./build/semaphores/counting_semaphore
+          ./build/semaphores/mutex_raii
+          ./build/parent-child/race_fork
+
+  tsan:
+    name: ThreadSanitizer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake clang-17
+      - name: Configure with -DSAN=tsan
+        env:
+          CXX: clang++-17
+        run: cmake -B build-tsan -DSAN=tsan -DCMAKE_BUILD_TYPE=Debug
+      - name: Build correctness-critical targets
+        run: |
+          cmake --build build-tsan --target fixed producer_consumer \
+            dining_philosophers reader_writer \
+            binary_semaphore counting_semaphore mutex_raii -j
+      - name: Run under TSAN
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+        run: |
+          ./build-tsan/race-conditions/fixed
+          ./build-tsan/producer-consumer/producer_consumer
+          ./build-tsan/dining-philosophers/dining_philosophers
+          ./build-tsan/reader-writer/reader_writer
+          ./build-tsan/semaphores/binary_semaphore
+          ./build-tsan/semaphores/counting_semaphore
+          ./build-tsan/semaphores/mutex_raii
+      # race.cpp is intentionally racy — assert TSAN reports it.
+      - name: Build race.cpp under TSAN (expected to be flagged)
+        run: cmake --build build-tsan --target race -j
+      - name: Confirm TSAN catches the race
+        env:
+          TSAN_OPTIONS: halt_on_error=1 exitcode=99
+        run: |
+          set +e
+          ./build-tsan/race-conditions/race
+          status=$?
+          if [ "$status" -ne 99 ]; then
+            echo "ERROR: TSAN should have caught race.cpp (expected exit 99, got $status)"
+            exit 1
+          fi
+          echo "OK: TSAN correctly flagged race.cpp"
+
+  asan:
+    name: AddressSanitizer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake clang-17
+      - name: Configure with -DSAN=asan
+        env:
+          CXX: clang++-17
+        run: cmake -B build-asan -DSAN=asan -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: |
+          cmake --build build-asan --target fixed producer_consumer \
+            dining_philosophers reader_writer \
+            binary_semaphore counting_semaphore mutex_raii race_fork -j
+      - name: Run under ASAN
+        env:
+          ASAN_OPTIONS: halt_on_error=1
+        run: |
+          ./build-asan/race-conditions/fixed
+          ./build-asan/producer-consumer/producer_consumer
+          ./build-asan/dining-philosophers/dining_philosophers
+          ./build-asan/reader-writer/reader_writer
+          ./build-asan/semaphores/binary_semaphore
+          ./build-asan/semaphores/counting_semaphore
+          ./build-asan/semaphores/mutex_raii
+          ./build-asan/parent-child/race_fork
